@@ -14,21 +14,23 @@ public class NodeResponsibilityTable {
         this.entries = new HashMap<>();
     }
 
-    public NodeResponsibilityTable(HashMap<Integer, NodeResponsibilityTableEntry> entries) {
-        this.entries = entries;
-    }
+//    public NodeResponsibilityTable(HashMap<Integer, NodeResponsibilityTableEntry> entries) {
+//        this.entries = entries;
+//    }
 
     // create/ overwrite a file but does not modify directory entry
-    public void createFile(int key, String filepath, String port) {
+    public String createFile(int key, String filepath, String port) {
         Document newDocument = new Document(true, port, new HashSet<DirectoryEntry>());
         NodeResponsibilityTableEntry temp = this.entries.get(key);
         if (!temp.entry.containsKey(filepath)) {
             temp.entry.put(filepath, newDocument);
+            return "";
         } else {
+            String portOfOldFile = temp.entry.get(filepath).fileLink;
             temp.entry.put(filepath, newDocument);
             // send delete command to delete old file
+            return portOfOldFile;
         }
-
     }
 
     public boolean createDirectory(int key, String directoryPath) {
@@ -94,10 +96,14 @@ public class NodeResponsibilityTable {
         NodeResponsibilityTableEntry temp = this.entries.get(key);
         Document doc = temp.entry.get(directoryPath);
         String result = "";
-        for (DirectoryEntry item : doc.directoryContents) {
-            result += item.name + "\t" + (item.isFile ? "f" : "d") + "\n";
+        try {
+            for (DirectoryEntry item : doc.directoryContents) {
+                result += item.name + "\t" + (item.isFile ? "f" : "d") + "\n";
+            }
+            return result;
+        } catch (Exception ex) {
+            return "";
         }
-        return result;
     }
 
     public boolean deleteDocument(int key, String pathname) {

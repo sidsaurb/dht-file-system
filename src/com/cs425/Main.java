@@ -47,16 +47,16 @@ public class Main {
                 // join
                 case "j":
                     if (!alreadyListening) {
-                        System.out.print("> Enter 5 digit port: ");
+//                        System.out.print("> Enter 5 digit port: ");
                         int port = scanner.nextInt();
                         int nodeHash = getHash(port);
                         alreadyListening = true;
-                        ListenToSocket(nodeHash, port);
+                        listenToSocket(nodeHash, port);
                         myPort = port;
                         if (port == MASTER_PORT) {
-                            InitializeMasterPort(nodeHash);
+                            initializeMasterPort(nodeHash);
                         } else {
-                            InitializeOtherPorts(port, nodeHash);
+                            initializeOtherPorts(port, nodeHash);
                         }
                     } else {
                         System.out.println("This program is already listening");
@@ -65,42 +65,21 @@ public class Main {
                 // just listen without joining
                 case "l":
                     if (!alreadyListening) {
-                        System.out.print("> Enter 5 digit port: ");
+//                        System.out.print("> Enter 5 digit port: ");
                         int port1 = scanner.nextInt();
                         int nodeHash1 = getHash(port1);
                         alreadyListening = true;
-                        ListenToSocket(nodeHash1, port1);
+                        listenToSocket(nodeHash1, port1);
                         myPort = port1;
                     } else {
                         System.out.println("This program is already listening");
                     }
                     break;
-//                // find a file location
-//                case "f":
-//                    if (alreadyListening) {
-//                        System.out.print("> Enter file name: ");
-//                        String filename = scanner.next();
-//                        int fileHash = getSHA1Hash(filename);
-//                        String filePort = getFilePort(fileHash);
-//                        if (filePort.equals("null")) {
-//                            System.out.println("The file does not exists");
-//                        } else {
-//                            System.out.println("The file exists at port: " + filePort);
-//                        }
-//                    } else {
-//                        System.out.println("The program is not listening to any port");
-//                    }
-//                    break;
                 // upload a file
                 case "u":
                     if (alreadyListening) {
-                        System.out.print("> Enter file name: ");
                         String filename1 = scanner.next();
-                        File f = new File(FILE_DIRECTORY + String.valueOf(myPort) + "/upload/" + filename1);
-                        if (f.exists() && !f.isDirectory()) {
-                            int pathHash1 = getSHA1Hash(CURRENT_PATH + filename1);
-                            uploadFile(CURRENT_PATH + filename1, pathHash1);
-                        } else {
+                        if (!processUploadCommand(filename1)) {
                             System.out.println("File doesn't exist");
                         }
                     } else {
@@ -110,33 +89,14 @@ public class Main {
                 // download a file
                 case "d":
                     if (alreadyListening) {
-                        System.out.print("> Enter file name: ");
                         String filename2 = scanner.next();
-                        int fileHash2 = getSHA1Hash(CURRENT_PATH + filename2);
-                        String filePort2 = getFilePort(fileHash2, CURRENT_PATH + filename2);
-                        if (filePort2.equals("null")) {
+                        if (!processDownloadCommand(filename2, "")) {
                             System.out.println("The file does not exists");
-                        } else {
-                            DownloadFile(filePort2, filename2);
-                            System.out.println("Downloaded from port: " + filePort2);
-//                            System.out.println("The file exists at port: " + filePort2);
                         }
                     } else {
                         System.out.println("The program is not listening to any port");
                     }
                     break;
-                // find route
-//                case "r":
-//                    if (alreadyListening) {
-//                        System.out.print("> Enter file name: ");
-//                        String filename2 = scanner.next();
-//                        int fileHash2 = getSHA1Hash(filename2);
-//                        String route = getFileRoute(fileHash2);
-//                        System.out.println(route);
-//                    } else {
-//                        System.out.println("The program is not listening to any port");
-//                    }
-//                    break;
                 case "pwd":
                     if (alreadyListening) {
                         System.out.println(CURRENT_PATH);
@@ -146,43 +106,17 @@ public class Main {
                     break;
                 case "ls":
                     if (alreadyListening) {
-                        String contents = GetDirectoryContents();
-                        System.out.println(contents);
+                        String contents = getDirectoryContents();
+                        prettyPrint(contents);
                     } else {
                         System.out.println("The program is not listening to any port");
                     }
                     break;
                 case "cd":
                     if (alreadyListening) {
-//                        System.out.print("> Enter directory name: ");
                         String directoryName = scanner.next();
-                        String[] arguments = directoryName.split("/");
-                        for (String item1 : arguments) {
-                            if (!item1.equals("..")) {
-                                String contents = GetDirectoryContents();
-                                String[] contentList = contents.split("\n");
-                                boolean exists = false;
-                                for (String item : contentList) {
-                                    String[] temp = item.split("\t");
-                                    if (temp[0].equals(item1) && temp[1].equals("d")) {
-                                        exists = true;
-                                        break;
-                                    }
-                                }
-                                if (exists) {
-                                    CURRENT_PATH = CURRENT_PATH + item1 + "/";
-                                } else {
-                                    System.out.println("No such directory exists");
-                                    break;
-                                }
-                            } else {
-                                if (!CURRENT_PATH.equals("/filesystem/")) {
-                                    CURRENT_PATH = getDirectoryFromFilePath(CURRENT_PATH.substring(0, CURRENT_PATH.length() - 1));
-                                } else {
-                                    System.out.println("No such directory exists");
-                                    break;
-                                }
-                            }
+                        if (!processCdCommand(directoryName)) {
+                            System.out.println("No such directory exists");
                         }
                     } else {
                         System.out.println("The program is not listening to any port");
@@ -192,7 +126,7 @@ public class Main {
                     if (alreadyListening) {
 //                        System.out.print("> Enter directory name: ");
                         String directoryName = scanner.next();
-                        if (createDirectory(CURRENT_PATH + directoryName + "/")) {
+                        if (processMkDirCommand(CURRENT_PATH + directoryName + "/")) {
                             System.out.println("Directory successfully created");
                         } else {
                             System.out.println("There was an error in creating the directory");
@@ -204,7 +138,9 @@ public class Main {
                 case "rm":
                     if (alreadyListening) {
                         String fileName = scanner.next();
-                        ProcessRmCommand(fileName);
+                        if (!processRmCommand(fileName)) {
+                            System.out.println("File not found");
+                        }
                     } else {
                         System.out.println("The program is not listening to any port");
                     }
@@ -212,7 +148,34 @@ public class Main {
                 case "rmdir":
                     if (alreadyListening) {
                         String directoryName = scanner.next();
-                        ProcessRmDirCommand(directoryName);
+                        if (!processRmDirCommand(directoryName)) {
+                            System.out.println("Directory not found");
+                        }
+                    } else {
+                        System.out.println("The program is not listening to any port");
+                    }
+                    break;
+                case "cp":
+                    if (alreadyListening) {
+                        String currentFileRelativePath = scanner.next(); // relative path
+                        String newFileRelativePath = scanner.next(); // relative path
+                        if (processCpCommand(currentFileRelativePath, newFileRelativePath)) {
+                            System.out.println("Copied successfully");
+                        } else {
+                            System.out.println("There was some error in copying");
+                        }
+                    } else {
+                        System.out.println("The program is not listening to any port");
+                    }
+                    break;
+                case "mv":
+                    if (alreadyListening) {
+                        String currentFileRelativePath = scanner.next(); // relative path
+                        String newFileRelativePath = scanner.next(); // relative path
+                        boolean success = processMvCommand(currentFileRelativePath, newFileRelativePath);
+                        if (!success) {
+                            System.out.println("There was an error in moving");
+                        }
                     } else {
                         System.out.println("The program is not listening to any port");
                     }
@@ -236,48 +199,307 @@ public class Main {
         }
     }
 
-    private static void ProcessRmDirCommand(String directoryName) {
+    private static void prettyPrint(String contents) {
+        String[] list = contents.split("\n");
+        Arrays.sort(list);
+        int max = 0;
+        for (String item : list) {
+            if (item.length() > max) {
+                max = item.length();
+            }
+        }
+        for (String item : list) {
+            if (!item.equals("")) {
+                int length = item.length();
+                String[] temp = item.split("\t");
+                System.out.println(temp[0] + new String(new char[max - length]).replace("\0", " ") + "\t\t" + temp[1]);
+            }
+        }
+    }
+
+    private static boolean processMvCommand(String currentFileRelativePath, String newFileRelativePath) {
+        String prev_cur_path = CURRENT_PATH;
+        String currentFileDirectory = getDirectoryFromFilePath(currentFileRelativePath);
+        String newFileDirectory = getDirectoryFromFilePath(newFileRelativePath);
+        String filename = getBaseFile(currentFileRelativePath);
+        String filename2 = getBaseFile(newFileRelativePath);
+        String currentPathFirstCase, currentFileSecondCase;
+        if (!currentFileDirectory.equals("")) {
+            if (!processCdCommand(currentFileDirectory)) {
+                return false;
+            }
+        }
+        currentPathFirstCase = CURRENT_PATH;
+        CURRENT_PATH = prev_cur_path;
+        if (!newFileDirectory.equals("")) {
+            if (!processCdCommand(newFileDirectory)) {
+                return false;
+            }
+        }
+        currentFileSecondCase = CURRENT_PATH;
+        CURRENT_PATH = prev_cur_path;
+        if (currentFileSecondCase.equals(currentPathFirstCase) && filename.equals(filename2)) {
+            return true;
+        }
+
+        processCpCommand(currentFileRelativePath, newFileRelativePath);
+
+        if (!currentFileDirectory.equals("")) {
+            if (!processCdCommand(currentFileDirectory)) {
+                return false;
+            }
+        }
+
+        String contents = getDirectoryContents();
+        String[] contentList = contents.split("\n");
+        boolean isDirectory = false;
+        for (String item : contentList) {
+            String[] temp = item.split("\t");
+            if (temp[0].equals(filename) && temp[1].equals("d")) {
+                isDirectory = true;
+                break;
+            }
+        }
+        if (isDirectory) {
+            processRmDirCommand(filename);
+        } else {
+            processRmCommand(filename);
+        }
+        CURRENT_PATH = prev_cur_path;
+        return true;
+    }
+
+    private static boolean processDownloadCommand(String fileToBeDownloaded, String destinationFile) {
+        if (destinationFile.equals("")) {
+            int fileHash2 = getSHA1Hash(CURRENT_PATH + fileToBeDownloaded);
+            String filePort2 = getFilePort(fileHash2, CURRENT_PATH + fileToBeDownloaded);
+            if (filePort2.equals("null")) {
+                return false;
+            } else {
+                downloadFile(filePort2, fileToBeDownloaded);
+                System.out.println("Downloaded from port: " + filePort2);
+            }
+            return true;
+        } else {
+            int fileHash2 = getSHA1Hash(CURRENT_PATH + fileToBeDownloaded);
+            String filePort2 = getFilePort(fileHash2, CURRENT_PATH + fileToBeDownloaded);
+            if (filePort2.equals("null")) {
+                return false;
+            } else {
+                String destFileBaseName = getBaseFile(destinationFile);
+                downloadFileToUploadFolder(filePort2, fileToBeDownloaded, destFileBaseName);
+//                System.out.println("Downloaded from port: " + filePort2);
+            }
+            return true;
+        }
+    }
+
+
+    private static boolean processCpCommand(String currentFileRelativePath, String newFileRelativePath) {
+//        System.out.println(currentFileRelativePath + "\t" + newFileRelativePath);
+        String currentFileDirectory = getDirectoryFromFilePath(currentFileRelativePath);
+        String newFileDirectory = getDirectoryFromFilePath(newFileRelativePath);
+        String prev_cur_path = CURRENT_PATH;
+        if (!currentFileDirectory.equals("")) {
+            if (!processCdCommand(currentFileDirectory)) {
+                return false;
+            }
+        }
+        String curFileBaseName = getBaseFile(currentFileRelativePath);
+        String newFileBaseName = getBaseFile(newFileRelativePath);
+
+
+        String contents = getDirectoryContents();
+        String[] contentList = contents.split("\n");
+        boolean isDirectory = false;
+        for (String item : contentList) {
+            String[] temp = item.split("\t");
+            if (temp[0].equals(curFileBaseName) && temp[1].equals("d")) {
+                isDirectory = true;
+                break;
+            }
+        }
+
+        if (!isDirectory) {
+            int curFileHash = getSHA1Hash(CURRENT_PATH + curFileBaseName);
+            String curFilePort = getFilePort(curFileHash, CURRENT_PATH + curFileBaseName);
+            downloadFileToUploadFolder(curFilePort, curFileBaseName, newFileBaseName);
+            CURRENT_PATH = prev_cur_path;
+            if (!newFileDirectory.equals("")) {
+                if (!processCdCommand(newFileDirectory)) {
+                    return false;
+                }
+            }
+            processUploadCommand(newFileBaseName);
+            CURRENT_PATH = prev_cur_path;
+            return true;
+        } else {
+            CURRENT_PATH = prev_cur_path;
+            if (!newFileDirectory.equals("")) {
+                processCdCommand(newFileDirectory);
+            }
+            processMkDirCommand(CURRENT_PATH + newFileBaseName + "/");
+            CURRENT_PATH = prev_cur_path;
+            processCdCommand(currentFileRelativePath);
+            String contents1 = getDirectoryContents();
+            String[] contentList1 = contents1.split("\n");
+            CURRENT_PATH = prev_cur_path;
+            for (String item : contentList1) {
+                if (!item.equals("")) {
+                    String[] temp = item.split("\t");
+                    processCpCommand(currentFileRelativePath + "/" + temp[0], newFileRelativePath + "/" + temp[0]);
+                }
+            }
+        }
+        return true;
+    }
+
+    private static boolean processUploadCommand(String filename) {
+        File f = new File(FILE_DIRECTORY + String.valueOf(myPort) + "/upload/" + filename);
+        if (f.exists() && !f.isDirectory()) {
+            int pathHash1 = getSHA1Hash(CURRENT_PATH + filename);
+            uploadFile(CURRENT_PATH + filename, pathHash1);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public static boolean isFile(String relativePath) {
+        String fileDirectory = getDirectoryFromFilePath(relativePath);
+        String prev_cur_path = CURRENT_PATH;
+
+        String fileBaseName = getBaseFile(relativePath);
+
+        if (!fileDirectory.equals("")) {
+            if (!processCdCommand(fileDirectory)) {
+                System.out.println("File/Directory does not exist");
+            }
+        }
+
+        String contents = getDirectoryContents();
+        String[] contentList = contents.split("\n");
+        boolean isDirectory = false;
+        for (String item : contentList) {
+            String[] temp = item.split("\t");
+            if (temp[0].equals(fileBaseName) && temp[1].equals("d")) {
+                isDirectory = true;
+                break;
+            }
+        }
+        CURRENT_PATH = prev_cur_path;
+        return !isDirectory;
+    }
+
+    private static boolean processCdCommand(String directoryName) {
+        String[] arguments = directoryName.split("/");
+        for (String item1 : arguments) {
+            if (!item1.equals("..")) {
+                String contents = getDirectoryContents();
+                String[] contentList = contents.split("\n");
+                boolean exists = false;
+                for (String item : contentList) {
+                    String[] temp = item.split("\t");
+                    if (temp[0].equals(item1) && temp[1].equals("d")) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (exists) {
+                    CURRENT_PATH = CURRENT_PATH + item1 + "/";
+                } else {
+                    return false;
+                }
+            } else {
+                if (!CURRENT_PATH.equals("/filesystem/")) {
+                    CURRENT_PATH = getDirectoryFromFilePath(CURRENT_PATH.substring(0, CURRENT_PATH.length() - 1));
+                } else {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static boolean processRmDirCommand(String directoryRelativePath) {
+        if (isFile(directoryRelativePath)) {
+            System.out.println(directoryRelativePath + " is not a directory");
+            // only because of printing
+            return true;
+        }
+
+        String currentFileDirectory = getDirectoryFromFilePath(directoryRelativePath);
+        String prev_cur_path = CURRENT_PATH;
+        if (!currentFileDirectory.equals("")) {
+            if (!processCdCommand(currentFileDirectory)) {
+                return false;
+            }
+        }
+        String directoryName = getBaseFile(directoryRelativePath);
+
+
         String directoryPath = CURRENT_PATH + directoryName + "/";
         int directoryPathHash = getSHA1Hash(directoryPath);
         String directoryPathPort = getSuccessorPort(String.valueOf(directoryPathHash));
         String command = "remove_directory\t" + directoryPath + "\n";
-        SendCommand(directoryPathPort, command);
+        sendCommand(directoryPathPort, command);
 
         int currentDirectoryHash = getSHA1Hash(CURRENT_PATH);
         String currentDirectoryPort = getSuccessorPort(String.valueOf(currentDirectoryHash));
         command = "delete_directory_entry\t" + String.valueOf(currentDirectoryHash) + "\t"
                 + CURRENT_PATH + "\t" + directoryName + "\t" + "d" + "\n";
-        SendCommand(currentDirectoryPort, command);
-        System.out.println("Directory deleted successfully");
+        sendCommand(currentDirectoryPort, command);
+
+        CURRENT_PATH = prev_cur_path;
+        return true;
+//        System.out.println("Directory deleted successfully");
     }
 
-    private static void ProcessRmCommand(String fileName) {
+    private static boolean processRmCommand(String fileRelativePath) {
+        if (!isFile(fileRelativePath)) {
+            System.out.println(fileRelativePath + " is not a file");
+            // only because of printing
+            return true;
+        }
+        String currentFileDirectory = getDirectoryFromFilePath(fileRelativePath);
+        String prev_cur_path = CURRENT_PATH;
+        if (!currentFileDirectory.equals("")) {
+            if (!processCdCommand(currentFileDirectory)) {
+                return false;
+            }
+        }
+        String curFileBaseName = getBaseFile(fileRelativePath);
+
         String command;
-        String pathname = CURRENT_PATH + fileName;
+        String pathname = CURRENT_PATH + curFileBaseName;
         int pathHash = getSHA1Hash(pathname);
         String filePort = getSuccessorPort(String.valueOf(pathHash));
 
         String actualFilePort = getFilePort(pathHash, pathname);
-        command = "delete_file_from_upload_folder\t" + fileName + "\n";
-        SendCommand(actualFilePort, command);
+        command = "delete_file_from_upload_folder\t" + curFileBaseName + "\n";
+        sendCommand(actualFilePort, command);
 
         command = "remove_document\t" + String.valueOf(pathHash) + "\t" + pathname + "\n";
-        String response = SendCommandWithReturnValue(filePort, command);
+        String response = sendCommandWithReturnValue(filePort, command);
 
         if (response.equals("success")) {
             String directoryPath = getDirectoryFromFilePath(pathname);
             int directoryPathHash = getSHA1Hash(directoryPath);
             String directoryPathPort = getSuccessorPort(String.valueOf(directoryPathHash));
             command = "delete_directory_entry\t" + String.valueOf(directoryPathHash) + "\t"
-                    + directoryPath + "\t" + fileName + "\t" + "f" + "\n";
-            SendCommand(directoryPathPort, command);
-            System.out.println("File deleted successfully");
+                    + directoryPath + "\t" + curFileBaseName + "\t" + "f" + "\n";
+            sendCommand(directoryPathPort, command);
+//            System.out.println("File deleted successfully");
+            CURRENT_PATH = prev_cur_path;
+            return true;
         } else {
-            System.out.println("File not found");
+            CURRENT_PATH = prev_cur_path;
+            return false;
         }
     }
 
-    private static boolean createDirectory(String directoryPath) {
+
+    private static boolean processMkDirCommand(String directoryPath) {
         try {
             int directoryHash = getSHA1Hash(directoryPath);
             // portOfDirectory is the final node which has this directory as its responsibility
@@ -288,7 +510,7 @@ public class Main {
                 NodeResponsibilityTable myTable = getResponsibilityTable(portOfDirectory);
                 success = myTable.createDirectory(directoryHash, directoryPath);
                 if (success) {
-                    WriteToFileAsJson(portOfDirectory + "_files", new Gson().toJson(myTable));
+                    writeToFileAsJson(portOfDirectory + "_files", new Gson().toJson(myTable));
                 }
             } else {
                 // if not my responsibility then forward command to the successor port
@@ -318,11 +540,11 @@ public class Main {
                 String directoryName = temp.substring(temp.lastIndexOf("/") + 1);
                 if (!parentDirectoryPort.equals(String.valueOf(myPort))) {
                     String command1 = "update_directory_contents" + "\t" + parentDirectoryPath + "\t" + directoryName + "\t" + "d" + "\n";
-                    SendCommand(parentDirectoryPort, command1);
+                    sendCommand(parentDirectoryPort, command1);
                 } else {
                     NodeResponsibilityTable myTable = getResponsibilityTable(String.valueOf(myPort));
                     myTable.updateDirectoryEntry(parentDirectoryHash, parentDirectoryPath, directoryName, "d");
-                    WriteToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
+                    writeToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
                 }
             }
             return success;
@@ -332,7 +554,7 @@ public class Main {
         return false;
     }
 
-    private static String GetDirectoryContents() {
+    private static String getDirectoryContents() {
         try {
             int directoryHash = getSHA1Hash(CURRENT_PATH);
             String portOfFile = getSuccessorPort(String.valueOf(directoryHash));
@@ -360,7 +582,7 @@ public class Main {
     }
 
     // takes port which has the file and downloads the file from it
-    private static void DownloadFile(String filePort, String filename) {
+    private static void downloadFile(String filePort, String filename) {
         try {
             Socket socket = new Socket(IP, Integer.parseInt(filePort));
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
@@ -369,6 +591,24 @@ public class Main {
             dos.flush();
             InputStream in = socket.getInputStream();
             String filepath = FILE_DIRECTORY + String.valueOf(myPort) + "/download/" + filename;
+            OutputStream out = new FileOutputStream(filepath);
+            copy(in, out);
+            out.close();
+            in.close();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private static void downloadFileToUploadFolder(String filePort, String fileToBeDownloaded, String destinationFile) {
+        try {
+            Socket socket = new Socket(IP, Integer.parseInt(filePort));
+            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+            String toWrite = "downloadfile\t" + String.valueOf(fileToBeDownloaded) + "\n";
+            dos.writeBytes(toWrite);
+            dos.flush();
+            InputStream in = socket.getInputStream();
+            String filepath = FILE_DIRECTORY + String.valueOf(myPort) + "/upload/" + destinationFile;
             OutputStream out = new FileOutputStream(filepath);
             copy(in, out);
             out.close();
@@ -394,9 +634,17 @@ public class Main {
             // if my responsibility
             if (Integer.parseInt(portOfFile) == myPort) {
                 NodeResponsibilityTable myTable = getResponsibilityTable(portOfFile);
-                myTable.createFile(pathHash, pathName, String.valueOf(myPort));
-                WriteToFileAsJson(portOfFile + "_files", new Gson().toJson(myTable));
-                System.out.println("File uploaded");
+                String res = myTable.createFile(pathHash, pathName, String.valueOf(myPort));
+                writeToFileAsJson(portOfFile + "_files", new Gson().toJson(myTable));
+
+                String getOriginalFilePort = getFilePort(pathHash, pathName);
+
+                // Delete old file
+                if (!res.equals("") && !res.equals(getOriginalFilePort)) {
+                    String command = "delete_file_from_upload_folder\t" + getBaseFile(pathName) + "\n";
+                    sendCommand(res, command);
+                }
+//                System.out.println("File uploaded");
 
             } else {
                 // if not my responsibility then forward command to the successor port
@@ -410,7 +658,7 @@ public class Main {
                 String response = br.readLine();
                 socket.close();
                 if (response.equals("success")) {
-                    System.out.println("File uploaded");
+//                    System.out.println("File uploaded");
                 } else {
                     System.out.println("File with the same key already exists");
                 }
@@ -423,36 +671,13 @@ public class Main {
             String filename = pathName.substring(pathName.lastIndexOf("/") + 1);
             if (!directoryPort.equals(String.valueOf(myPort))) {
                 String command1 = "update_directory_contents" + "\t" + directoryPath + "\t" + filename + "\tf" + "\n";
-                SendCommand(directoryPort, command1);
+                sendCommand(directoryPort, command1);
             } else {
                 NodeResponsibilityTable myTable = getResponsibilityTable(String.valueOf(myPort));
                 myTable.updateDirectoryEntry(directoryHash, directoryPath, filename, "f");
-                WriteToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
+                writeToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    // update file responsibility table of the node, corresponding to the key fileHash to point
-    // to containingPort
-    private static void changeFilePort(String portOfFile, int fileHash, String containingPort) {
-        ArrayList<String> contents = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(FINGER_TABLE_DIRECTORY + portOfFile + "_files"))) {
-            String line;
-            line = reader.readLine();
-            contents.add(line);
-            while ((line = reader.readLine()) != null) {
-                String[] temp = line.split("\t");
-                Integer fileKey = Integer.parseInt(temp[0]);
-                if (fileHash == fileKey) {
-                    contents.add(temp[0] + "\t" + containingPort);
-                } else {
-                    contents.add(line);
-                }
-            }
-            WriteToFile(portOfFile + "_files", contents);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -502,35 +727,6 @@ public class Main {
             return entry.entry.get(filePath).fileLink;
         }
     }
-//
-//    private static String getFileRoute(int fileHash) {
-//        try {
-////            String portOfFile = getSuccessorPort(String.valueOf(getHash(myPort)), String.valueOf(fileHash));
-//            String portOfFile = getSuccessorPort(String.valueOf((myPort)), String.valueOf(fileHash));
-//            if (Integer.parseInt(portOfFile) == myPort) {
-//                String fileDestinationPort = getFileDestinationPort(portOfFile, fileHash);
-//                if (fileDestinationPort.equals("null")) {
-//                    return String.valueOf(myPort) + " -> " + "null";
-//                } else {
-//                    return String.valueOf(myPort) + " -> " + fileDestinationPort;
-//                }
-//            } else {
-//                Socket socket = new Socket(IP, Integer.parseInt(portOfFile));
-//                DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-//                String toWrite = "route\t" + String.valueOf(fileHash) + "\n";
-//                dos.writeBytes(toWrite);
-//                dos.flush();
-//                InputStreamReader isr = new InputStreamReader(socket.getInputStream());
-//                BufferedReader br = new BufferedReader(isr);
-//                String route = br.readLine();
-//                socket.close();
-//                return String.valueOf(myPort) + " -> " + route;
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        return "null";
-//    }
 
     private static NodeResponsibilityTable getResponsibilityTable(String portOfFile) {
         try (BufferedReader reader = new BufferedReader(new FileReader(FINGER_TABLE_DIRECTORY + portOfFile + "_files"))) {
@@ -544,7 +740,7 @@ public class Main {
         return new NodeResponsibilityTable();
     }
 
-    private static void InitializeOtherPorts(int port, int nodeHash) {
+    private static void initializeOtherPorts(int port, int nodeHash) {
         try {
             // query master node for successor of this newly created node
             Socket socket = new Socket(IP, MASTER_PORT);
@@ -574,7 +770,7 @@ public class Main {
                 br = new BufferedReader(isr);
                 String receivedData = br.readLine();
                 socket.close();
-                WriteToFileAsJson(String.valueOf(port) + "_files", receivedData);
+                writeToFileAsJson(String.valueOf(port) + "_files", receivedData);
 
                 // send a command to its successor node to update its finger table
                 // the successor node will in-turn forward this to its own successor till
@@ -588,41 +784,38 @@ public class Main {
                 dos.flush();
                 socket.close();
 
-                CreateLocalDirectories();
+                createLocalDirectories();
             }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
     }
 
-    private static void InitializeMasterPort(int nodeHash) {
+    private static void initializeMasterPort(int nodeHash) {
         ArrayList<String> contents = new ArrayList<>();
         for (int i = 1; i <= logN; i++) {
             int temp = (nodeHash + (int) Math.pow(2, i - 1)) % N;
             contents.add(String.valueOf(temp) + "\t" + nodeHash + "\t" + String.valueOf(MASTER_PORT));
         }
-        WriteToFile(String.valueOf(MASTER_PORT), contents);
-//        ArrayList<String> responsibility = new ArrayList<>();
+        writeToFile(String.valueOf(MASTER_PORT), contents);
 
         NodeResponsibilityTable myTable = new NodeResponsibilityTable();
         for (int i = 0; i < N; i++) {
             myTable.entries.put(i, new NodeResponsibilityTableEntry());
-//            responsibility.add(String.valueOf(i) + "\t[]");
         }
         myTable.min = (nodeHash + 1) % N;
-//        responsibility.add(0, "min\t" + String.valueOf((nodeHash + 1) % N));
 
         int initialDirectoryHash = getSHA1Hash(CURRENT_PATH);
         if (!myTable.createDirectory(initialDirectoryHash, CURRENT_PATH)) {
             System.out.println("Error creating initial directory");
         }
 
-        WriteToFileAsJson(String.valueOf(MASTER_PORT) + "_files", new Gson().toJson(myTable));
-        CreateLocalDirectories();
+        writeToFileAsJson(String.valueOf(MASTER_PORT) + "_files", new Gson().toJson(myTable));
+        createLocalDirectories();
 
     }
 
-    private static void CreateLocalDirectories() {
+    private static void createLocalDirectories() {
         File theDir = new File(FILE_DIRECTORY + String.valueOf(myPort));
         if (!theDir.exists()) {
             try {
@@ -646,7 +839,7 @@ public class Main {
         }
     }
 
-    private static void ListenToSocket(final int hash, final int port) {
+    private static void listenToSocket(final int hash, final int port) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -661,60 +854,60 @@ public class Main {
                             InputStreamReader isr = new InputStreamReader(socket.getInputStream());
                             BufferedReader br = new BufferedReader(isr);
                             String command = br.readLine();
-                            if (command.contains("successor")) {
+                            if (isFirstWord(command, "successor")) {
                                 String targetNode = command.split("\t")[1];
                                 String a = getSuccessorPort(targetNode);
                                 DataOutputStream dos = new DataOutputStream(os);
                                 dos.writeBytes(a + "\n");
                                 dos.flush();
-                            } else if (command.contains("UpdateFingerTables")) {
+                            } else if (isFirstWord(command, "UpdateFingerTables")) {
                                 String[] temp = command.split("\t");
                                 String nodeHash = temp[1];
                                 String nodePort = temp[2];
                                 String succHash = temp[3];
                                 String succPort = temp[4];
                                 UpdateFingerTableAndForwardCommand(command, port, hash, nodeHash, nodePort, succHash, succPort);
-                            } else if (command.contains("UpdateFileList")) {
+                            } else if (isFirstWord(command, "UpdateFileList")) {
                                 String[] temp = command.split("\t");
                                 String dataToSend = updateFileResponsibility(String.valueOf(port), temp[1]);
                                 DataOutputStream dos = new DataOutputStream(os);
                                 dos.writeBytes(dataToSend + "\n");
                                 dos.flush();
-                            } else if (command.contains("filename")) {
+                            } else if (isFirstWord(command, "filename")) {
                                 // name is misleading. actually query for port number of a file.
                                 String[] temp = command.split("\t");
                                 String dataToSend = getFileDestinationPort(String.valueOf(port), Integer.parseInt(temp[1]), temp[2]);
                                 DataOutputStream dos = new DataOutputStream(os);
                                 dos.writeBytes(dataToSend + "\n");
                                 dos.flush();
-                            } else if (command.contains("file_upload")) {
+                            } else if (isFirstWord(command, "file_upload")) {
                                 String[] temp = command.split("\t");
                                 NodeResponsibilityTable myTable = getResponsibilityTable(String.valueOf(port));
-                                myTable.createFile(Integer.valueOf(temp[1]), temp[3], temp[2]);
-                                WriteToFileAsJson(String.valueOf(port) + "_files", new Gson().toJson(myTable));
+                                String res = myTable.createFile(Integer.parseInt(temp[1]), temp[3], temp[2]);
+                                writeToFileAsJson(String.valueOf(port) + "_files", new Gson().toJson(myTable));
                                 DataOutputStream dos = new DataOutputStream(os);
                                 dos.writeBytes("success" + "\n");
                                 dos.flush();
-                            } else if (command.contains("downloadfile")) {
+
+                                String getOriginalFilePort = getFilePort(Integer.parseInt(temp[1]), temp[3]);
+                                // Delete old file
+                                if (!res.equals("") && !res.equals(String.valueOf(getOriginalFilePort))) {
+                                    command = "delete_file_from_upload_folder\t" + getBaseFile(temp[3]) + "\n";
+                                    sendCommand(res, command);
+                                }
+
+                            } else if (isFirstWord(command, "downloadfile")) {
                                 String[] temp = command.split("\t");
                                 InputStream in = new FileInputStream(FILE_DIRECTORY + String.valueOf(port) + "/upload/" + temp[1]);
                                 copy(in, os);
                                 os.close();
                                 in.close();
-                            }
-//                            else if (command.contains("route")) {
-//                                String[] temp = command.split("\t");
-//                                String a = getFileRoute(Integer.parseInt(temp[1]));
-//                                DataOutputStream dos = new DataOutputStream(os);
-//                                dos.writeBytes(a + "\n");
-//                                dos.flush();
-//                            }
-                            else if (command.contains("update_directory_contents")) {
+                            } else if (isFirstWord(command, "update_directory_contents")) {
                                 String[] temp = command.split("\t");
                                 NodeResponsibilityTable myTable = getResponsibilityTable(String.valueOf(myPort));
                                 myTable.updateDirectoryEntry(getSHA1Hash(temp[1]), temp[1], temp[2], temp[3]);
-                                WriteToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
-                            } else if (command.contains("get_directory_contents")) {
+                                writeToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
+                            } else if (isFirstWord(command, "get_directory_contents")) {
                                 String[] temp = command.split("\t");
                                 NodeResponsibilityTable myTable = getResponsibilityTable(String.valueOf(myPort));
                                 int directoryHash = getSHA1Hash(temp[1]);
@@ -723,48 +916,47 @@ public class Main {
                                 dos.writeBytes(contents + "\n");
                                 dos.flush();
                                 dos.close();
-                            } else if (command.contains("mkdir")) {
+                            } else if (isFirstWord(command, "mkdir")) {
                                 String[] temp = command.split("\t");
                                 NodeResponsibilityTable myTable = getResponsibilityTable(String.valueOf(myPort));
                                 boolean success = myTable.createDirectory(Integer.parseInt(temp[1]), temp[2]);
                                 if (success) {
-                                    WriteToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
+                                    writeToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
                                 }
                                 String contents = success ? "success" : "failure";
                                 DataOutputStream dos = new DataOutputStream(os);
                                 dos.writeBytes(contents + "\n");
                                 dos.flush();
                                 dos.close();
-                            } else if (command.contains("remove_document")) {
+                            } else if (isFirstWord(command, "remove_document")) {
                                 String[] temp = command.split("\t");
                                 NodeResponsibilityTable myTable = getResponsibilityTable(String.valueOf(myPort));
                                 boolean success = myTable.deleteDocument(Integer.parseInt(temp[1]), temp[2]);
                                 if (success) {
-                                    WriteToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
+                                    writeToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
                                 }
                                 String contents = success ? "success" : "failure";
                                 DataOutputStream dos = new DataOutputStream(os);
                                 dos.writeBytes(contents + "\n");
                                 dos.flush();
                                 dos.close();
-                            } else if (command.contains("delete_directory_entry")) {
+                            } else if (isFirstWord(command, "delete_directory_entry")) {
                                 String[] temp = command.split("\t");
                                 NodeResponsibilityTable myTable = getResponsibilityTable(String.valueOf(myPort));
                                 boolean success = myTable.deleteDirectoryEntry(Integer.parseInt(temp[1]), temp[2], temp[3], temp[4]);
                                 if (success) {
-                                    WriteToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
+                                    writeToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
                                 }
-                            } else if (command.contains("delete_file_from_upload_folder")) {
+                            } else if (isFirstWord(command, "delete_file_from_upload_folder")) {
                                 String[] temp = command.split("\t");
-                                DeleteLocalFile(temp[1]);
-                            } else if (command.contains("remove_directory")) {
+                                deleteLocalFile(temp[1]);
+                            } else if (isFirstWord(command, "remove_directory")) {
 //                                System.out.println("delete directory command received at port " + String.valueOf(myPort));
                                 String[] temp = command.split("\t");
                                 DeleteDirectory(temp[1]);
                             }
                         }
                     } catch (Exception ex) {
-//                        ex.printStackTrace();
                         ex.printStackTrace();
                         alreadyListening = false;
                         listener.close();
@@ -773,11 +965,14 @@ public class Main {
                     alreadyListening = false;
                     System.out.println("Another process is already listening on port " + String.valueOf(port));
                 } catch (Exception ignored) {
-//                    ignored.printStackTrace();
                     alreadyListening = false;
                 }
             }
         }).start();
+    }
+
+    public static boolean isFirstWord(String command, String query) {
+        return command.indexOf(query) == 0;
     }
 
     private static void DeleteDirectory(final String directoryPath) {
@@ -785,7 +980,7 @@ public class Main {
         NodeResponsibilityTable myTable = getResponsibilityTable(String.valueOf(myPort));
         Document myDocument = myTable.entries.get(key).entry.get(directoryPath);
         myTable.deleteDocument(key, directoryPath);
-        WriteToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
+        writeToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
         for (DirectoryEntry item : myDocument.directoryContents) {
             if (item.isFile) {
                 String command;
@@ -795,25 +990,25 @@ public class Main {
 
                 String actualFilePort = getFilePort(pathHash, pathname);
                 command = "delete_file_from_upload_folder\t" + item.name + "\n";
-                SendCommand(actualFilePort, command);
+                sendCommand(actualFilePort, command);
 
                 if (!filePort.equals(String.valueOf(myPort))) {
                     command = "remove_document\t" + String.valueOf(pathHash) + "\t" + pathname + "\n";
-                    SendCommandWithReturnValue(filePort, command);
+                    sendCommandWithReturnValue(filePort, command);
                 } else {
                     NodeResponsibilityTable myTable1 = getResponsibilityTable(String.valueOf(myPort));
                     boolean success = myTable1.deleteDocument(pathHash, pathname);
                     if (success) {
-                        WriteToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable1));
+                        writeToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable1));
                     }
                 }
 
-//                String directoryPath1 = getDirectoryFromFilePath(pathname);
-//                int directoryPathHash1 = getSHA1Hash(directoryPath1);
-//                String directoryPathPort1 = getSuccessorPort(String.valueOf(directoryPathHash1));
-//                command = "delete_directory_entry\t" + String.valueOf(directoryPathHash1) + "\t"
-//                        + directoryPath + "\t" + item.name + "\t" + "f" + "\n";
-//                SendCommand(directoryPathPort1, command);
+                String directoryPath1 = getDirectoryFromFilePath(pathname);
+                int directoryPathHash1 = getSHA1Hash(directoryPath1);
+                String directoryPathPort1 = getSuccessorPort(String.valueOf(directoryPathHash1));
+                command = "delete_directory_entry\t" + String.valueOf(directoryPathHash1) + "\t"
+                        + directoryPath + "\t" + item.name + "\t" + "f" + "\n";
+                sendCommand(directoryPathPort1, command);
             } else {
 //                String pathname = directoryPath + item.name+ "/";
                 String directoryPath1 = directoryPath + item.name + "/";
@@ -821,7 +1016,7 @@ public class Main {
                 String directoryPathPort1 = getSuccessorPort(String.valueOf(directoryPathHash1));
                 if (!directoryPathPort1.equals(String.valueOf(myPort))) {
                     String command = "remove_directory\t" + directoryPath1 + "\n";
-                    SendCommand(directoryPathPort1, command);
+                    sendCommand(directoryPathPort1, command);
                 } else {
                     DeleteDirectory(directoryPath1);
                 }
@@ -831,19 +1026,19 @@ public class Main {
 //                String directoryPathPort2 = getSuccessorPort(String.valueOf(directoryPathHash2));
 //                command = "delete_directory_entry\t" + String.valueOf(directoryPathHash2) + "\t"
 //                        + directoryPath + "\t" + item.name + "\t" + "d" + "\n";
-//                SendCommand(directoryPathPort2, command);
+//                sendCommand(directoryPathPort2, command);
             }
         }
     }
 
-    private static void DeleteLocalFile(String filename) {
+    private static void deleteLocalFile(String filename) {
         File f = new File(FILE_DIRECTORY + String.valueOf(myPort) + "/upload/" + filename);
         if (f.exists() && !f.isDirectory()) {
             f.delete();
         }
     }
 
-    private static void SendCommand(String port, String command) {
+    private static void sendCommand(String port, String command) {
         try {
             Socket socket = new Socket(IP, Integer.valueOf(port));
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
@@ -855,7 +1050,7 @@ public class Main {
         }
     }
 
-    private static String SendCommandWithReturnValue(String port, String command) {
+    private static String sendCommandWithReturnValue(String port, String command) {
         try {
             Socket socket = new Socket(IP, Integer.valueOf(port));
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
@@ -876,12 +1071,16 @@ public class Main {
         return filePath.substring(0, filePath.lastIndexOf("/") + 1);
     }
 
+    private static String getBaseFile(String filepath) {
+        return filepath.substring(filepath.lastIndexOf('/') + 1);
+    }
+
     private static void UpdateFingerTableAndForwardCommand(String command, int currentPort, int currentHash, String nodeHash, String nodePort, String succHash, String succPort) {
         try {
             // If not hit back on current node update your current finger table
             // and forward the query
             if (Integer.parseInt(nodeHash) != currentHash) {
-                UpdateFingerTable(String.valueOf(currentPort), nodeHash, nodePort, succHash);
+                updateFingerTable(String.valueOf(currentPort), nodeHash, nodePort, succHash);
                 String mySuccessor = getOwnSuccessor(String.valueOf(currentPort));
                 Socket socket1 = new Socket(IP, Integer.valueOf(mySuccessor));
                 DataOutputStream dos1 = new DataOutputStream(socket1.getOutputStream());
@@ -924,7 +1123,7 @@ public class Main {
                         contents.add(String.valueOf(temp1) + "\t" + successorNodeHash + "\t" + successorNodePort);
                     }
                 }
-                WriteToFile(String.valueOf(currentPort), contents);
+                writeToFile(String.valueOf(currentPort), contents);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -959,33 +1158,9 @@ public class Main {
             }
             toBeSentTable.min = myTable.min;
             ownTable.min = (nodeHash + 1) % N;
-            WriteToFileAsJson(filename + "_files", new Gson().toJson(ownTable));
+            writeToFileAsJson(filename + "_files", new Gson().toJson(ownTable));
             return new Gson().toJson(toBeSentTable);
 
-//            ArrayList<String> ownList = new ArrayList<>();
-//            ArrayList<String> toBeSentList = new ArrayList<>();
-//            ownList.add("min\t" + String.valueOf((nodeHash + 1) % N));
-//            try (BufferedReader reader = new BufferedReader(new FileReader(FINGER_TABLE_DIRECTORY + filename + "_files"))) {
-//                String line;
-//                if ((line = reader.readLine()) != null) {
-//                    toBeSentList.add(line);
-//                }
-//                while ((line = reader.readLine()) != null) {
-//                    String[] temp = line.split("\t");
-//                    Integer fileKey = Integer.parseInt(temp[0]);
-//                    if (isBetween((nodeHash + 1) % N, myHash, fileKey)) {
-//                        ownList.add(line);
-//                    } else {
-//                        toBeSentList.add(line);
-//                    }
-//                }
-//            }
-//            WriteToFile(filename + "_files", ownList);
-//            String toBeSent = "";
-//            for (String item : toBeSentList) {
-//                toBeSent += ";" + item;
-//            }
-//            return toBeSent;
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -1096,7 +1271,7 @@ public class Main {
         return node % N;
     }
 
-    private static void UpdateFingerTable(String filename, String nodeHash1, String nodePort1, String succHash1) {
+    private static void updateFingerTable(String filename, String nodeHash1, String nodePort1, String succHash1) {
         try {
             int nodeHash = Integer.parseInt(nodeHash1);
             int succHash = Integer.parseInt(succHash1);
@@ -1115,7 +1290,7 @@ public class Main {
                         contents.add(line);
                     }
                 }
-                WriteToFile(filename, contents);
+                writeToFile(filename, contents);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -1125,18 +1300,15 @@ public class Main {
         }
     }
 
-    private static void WriteToFileAsJson(String filename, String contents) {
+    private static void writeToFileAsJson(String filename, String contents) {
         try {
-//            if (contents.get(0).equals("")) {
-//                contents.remove(0);
-//            }
             Path out = Paths.get(FINGER_TABLE_DIRECTORY + filename);
             Files.write(out, new ArrayList<>(Arrays.asList(contents)), Charset.defaultCharset());
         } catch (Exception ignored) {
         }
     }
 
-    private static void WriteToFile(String filename, ArrayList<String> contents) {
+    private static void writeToFile(String filename, ArrayList<String> contents) {
         try {
             if (contents.get(0).equals("")) {
                 contents.remove(0);
