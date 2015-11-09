@@ -68,20 +68,24 @@ public class NodeResponsibilityTable {
     public boolean deleteDirectoryEntry(int key, String directoryPath, String name, String type) {
         NodeResponsibilityTableEntry temp = this.entries.get(key);
         Document doc = temp.entry.get(directoryPath);
-        Iterator<DirectoryEntry> it = doc.directoryContents.iterator();
-        DirectoryEntry toBeDeleted = null;
-        while (it.hasNext()) {
-            DirectoryEntry temp1 = it.next();
-            if (temp1.name.equals(name)) {
-                toBeDeleted = temp1;
-                break;
+        try {
+            Iterator<DirectoryEntry> it = doc.directoryContents.iterator();
+            DirectoryEntry toBeDeleted = null;
+            while (it.hasNext()) {
+                DirectoryEntry temp1 = it.next();
+                if (temp1.name.equals(name)) {
+                    toBeDeleted = temp1;
+                    break;
+                }
             }
-        }
-        if (toBeDeleted != null) {
-            doc.directoryContents.remove(toBeDeleted);
-            return true;
-        }
-        else{
+            if (toBeDeleted != null) {
+                doc.directoryContents.remove(toBeDeleted);
+                return true;
+            } else {
+                return false;
+            }
+        } catch (Exception ignored) {
+            System.out.println(String.valueOf(key) + " " + directoryPath + " " + name);
             return false;
         }
     }
@@ -96,10 +100,11 @@ public class NodeResponsibilityTable {
         return result;
     }
 
-    public boolean deleteDocument(int key, String pathname){
+    public boolean deleteDocument(int key, String pathname) {
         NodeResponsibilityTableEntry temp = this.entries.get(key);
         Document doc = temp.entry.remove(pathname);
         return doc != null;
     }
+
 
 }

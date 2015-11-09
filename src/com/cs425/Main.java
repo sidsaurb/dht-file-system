@@ -208,7 +208,16 @@ public class Main {
                     } else {
                         System.out.println("The program is not listening to any port");
                     }
-                    // quit the program
+                    break;
+                case "rmdir":
+                    if (alreadyListening) {
+                        String directoryName = scanner.next();
+                        ProcessRmDirCommand(directoryName);
+                    } else {
+                        System.out.println("The program is not listening to any port");
+                    }
+                    break;
+                // quit the program
                 case "q":
                     break;
                 default:
@@ -227,11 +236,26 @@ public class Main {
         }
     }
 
+    private static void ProcessRmDirCommand(String directoryName) {
+        String directoryPath = CURRENT_PATH + directoryName + "/";
+        int directoryPathHash = getSHA1Hash(directoryPath);
+        String directoryPathPort = getSuccessorPort(String.valueOf(directoryPathHash));
+        String command = "remove_directory\t" + directoryPath + "\n";
+        SendCommand(directoryPathPort, command);
+
+        int currentDirectoryHash = getSHA1Hash(CURRENT_PATH);
+        String currentDirectoryPort = getSuccessorPort(String.valueOf(currentDirectoryHash));
+        command = "delete_directory_entry\t" + String.valueOf(currentDirectoryHash) + "\t"
+                + CURRENT_PATH + "\t" + directoryName + "\t" + "d" + "\n";
+        SendCommand(currentDirectoryPort, command);
+        System.out.println("Directory deleted successfully");
+    }
+
     private static void ProcessRmCommand(String fileName) {
         String command;
         String pathname = CURRENT_PATH + fileName;
         int pathHash = getSHA1Hash(pathname);
-        String filePort = getSuccessorPort(String.valueOf(myPort), String.valueOf(pathHash));
+        String filePort = getSuccessorPort(String.valueOf(pathHash));
 
         String actualFilePort = getFilePort(pathHash, pathname);
         command = "delete_file_from_upload_folder\t" + fileName + "\n";
@@ -243,8 +267,8 @@ public class Main {
         if (response.equals("success")) {
             String directoryPath = getDirectoryFromFilePath(pathname);
             int directoryPathHash = getSHA1Hash(directoryPath);
-            String directoryPathPort = getSuccessorPort(String.valueOf(myPort), String.valueOf(directoryPathHash));
-            command = "delete_directory_content\t" + String.valueOf(directoryPathHash) + "\t"
+            String directoryPathPort = getSuccessorPort(String.valueOf(directoryPathHash));
+            command = "delete_directory_entry\t" + String.valueOf(directoryPathHash) + "\t"
                     + directoryPath + "\t" + fileName + "\t" + "f" + "\n";
             SendCommand(directoryPathPort, command);
             System.out.println("File deleted successfully");
@@ -257,7 +281,7 @@ public class Main {
         try {
             int directoryHash = getSHA1Hash(directoryPath);
             // portOfDirectory is the final node which has this directory as its responsibility
-            String portOfDirectory = getSuccessorPort(String.valueOf((myPort)), String.valueOf(directoryHash));
+            String portOfDirectory = getSuccessorPort(String.valueOf(directoryHash));
             boolean success;
             // if my responsibility
             if (Integer.parseInt(portOfDirectory) == myPort) {
@@ -289,11 +313,11 @@ public class Main {
             if (success) {
                 String parentDirectoryPath = getDirectoryFromFilePath(directoryPath.substring(0, directoryPath.length() - 1));
                 int parentDirectoryHash = getSHA1Hash(parentDirectoryPath);
-                String parentDirectoryPort = getSuccessorPort(String.valueOf(myPort), String.valueOf(parentDirectoryHash));
+                String parentDirectoryPort = getSuccessorPort(String.valueOf(parentDirectoryHash));
                 String temp = directoryPath.substring(0, directoryPath.length() - 1);
                 String directoryName = temp.substring(temp.lastIndexOf("/") + 1);
                 if (!parentDirectoryPort.equals(String.valueOf(myPort))) {
-                    String command1 = "update_directory_contents" + "\t" + parentDirectoryPath + "\t" + directoryName + "\t" + "d";
+                    String command1 = "update_directory_contents" + "\t" + parentDirectoryPath + "\t" + directoryName + "\t" + "d" + "\n";
                     SendCommand(parentDirectoryPort, command1);
                 } else {
                     NodeResponsibilityTable myTable = getResponsibilityTable(String.valueOf(myPort));
@@ -311,7 +335,7 @@ public class Main {
     private static String GetDirectoryContents() {
         try {
             int directoryHash = getSHA1Hash(CURRENT_PATH);
-            String portOfFile = getSuccessorPort(String.valueOf((myPort)), String.valueOf(directoryHash));
+            String portOfFile = getSuccessorPort(String.valueOf(directoryHash));
             Socket socket = new Socket(IP, Integer.parseInt(portOfFile));
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
             String toWrite = "get_directory_contents\t" + CURRENT_PATH + "\n";
@@ -366,7 +390,7 @@ public class Main {
     private static void uploadFile(String pathName, int pathHash) {
         try {
             // portOfFile is the final node which has this file as its responsibility
-            String portOfFile = getSuccessorPort(String.valueOf((myPort)), String.valueOf(pathHash));
+            String portOfFile = getSuccessorPort(String.valueOf(pathHash));
             // if my responsibility
             if (Integer.parseInt(portOfFile) == myPort) {
                 NodeResponsibilityTable myTable = getResponsibilityTable(portOfFile);
@@ -395,10 +419,10 @@ public class Main {
             // update directory entry of the directory containing this file
             String directoryPath = getDirectoryFromFilePath(pathName);
             int directoryHash = getSHA1Hash(directoryPath);
-            String directoryPort = getSuccessorPort(String.valueOf(myPort), String.valueOf(directoryHash));
+            String directoryPort = getSuccessorPort(String.valueOf(directoryHash));
             String filename = pathName.substring(pathName.lastIndexOf("/") + 1);
             if (!directoryPort.equals(String.valueOf(myPort))) {
-                String command1 = "update_directory_contents" + "\t" + directoryPath + "\t" + filename + "\tf";
+                String command1 = "update_directory_contents" + "\t" + directoryPath + "\t" + filename + "\tf" + "\n";
                 SendCommand(directoryPort, command1);
             } else {
                 NodeResponsibilityTable myTable = getResponsibilityTable(String.valueOf(myPort));
@@ -438,7 +462,7 @@ public class Main {
     private static String getFilePort(int pathHash, String filePath) {
         try {
 //            String portOfFile = getSuccessorPort(String.valueOf(getHash(myPort)), String.valueOf(fileHash));
-            String portOfFile = getSuccessorPort(String.valueOf((myPort)), String.valueOf(pathHash));
+            String portOfFile = getSuccessorPort(String.valueOf(pathHash));
             if (Integer.parseInt(portOfFile) == myPort) {
                 String fileDestinationPort = getFileDestinationPort(portOfFile, pathHash, filePath);
                 if (fileDestinationPort == null) {
@@ -639,7 +663,7 @@ public class Main {
                             String command = br.readLine();
                             if (command.contains("successor")) {
                                 String targetNode = command.split("\t")[1];
-                                String a = getSuccessorPort(String.valueOf(port), targetNode);
+                                String a = getSuccessorPort(targetNode);
                                 DataOutputStream dos = new DataOutputStream(os);
                                 dos.writeBytes(a + "\n");
                                 dos.flush();
@@ -723,7 +747,7 @@ public class Main {
                                 dos.writeBytes(contents + "\n");
                                 dos.flush();
                                 dos.close();
-                            } else if (command.contains("delete_directory_content")) {
+                            } else if (command.contains("delete_directory_entry")) {
                                 String[] temp = command.split("\t");
                                 NodeResponsibilityTable myTable = getResponsibilityTable(String.valueOf(myPort));
                                 boolean success = myTable.deleteDirectoryEntry(Integer.parseInt(temp[1]), temp[2], temp[3], temp[4]);
@@ -733,10 +757,15 @@ public class Main {
                             } else if (command.contains("delete_file_from_upload_folder")) {
                                 String[] temp = command.split("\t");
                                 DeleteLocalFile(temp[1]);
+                            } else if (command.contains("remove_directory")) {
+//                                System.out.println("delete directory command received at port " + String.valueOf(myPort));
+                                String[] temp = command.split("\t");
+                                DeleteDirectory(temp[1]);
                             }
                         }
                     } catch (Exception ex) {
 //                        ex.printStackTrace();
+                        ex.printStackTrace();
                         alreadyListening = false;
                         listener.close();
                     }
@@ -749,6 +778,62 @@ public class Main {
                 }
             }
         }).start();
+    }
+
+    private static void DeleteDirectory(final String directoryPath) {
+        int key = getSHA1Hash(directoryPath);
+        NodeResponsibilityTable myTable = getResponsibilityTable(String.valueOf(myPort));
+        Document myDocument = myTable.entries.get(key).entry.get(directoryPath);
+        myTable.deleteDocument(key, directoryPath);
+        WriteToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable));
+        for (DirectoryEntry item : myDocument.directoryContents) {
+            if (item.isFile) {
+                String command;
+                String pathname = directoryPath + item.name;
+                int pathHash = getSHA1Hash(pathname);
+                String filePort = getSuccessorPort(String.valueOf(pathHash));
+
+                String actualFilePort = getFilePort(pathHash, pathname);
+                command = "delete_file_from_upload_folder\t" + item.name + "\n";
+                SendCommand(actualFilePort, command);
+
+                if (!filePort.equals(String.valueOf(myPort))) {
+                    command = "remove_document\t" + String.valueOf(pathHash) + "\t" + pathname + "\n";
+                    SendCommandWithReturnValue(filePort, command);
+                } else {
+                    NodeResponsibilityTable myTable1 = getResponsibilityTable(String.valueOf(myPort));
+                    boolean success = myTable1.deleteDocument(pathHash, pathname);
+                    if (success) {
+                        WriteToFileAsJson(String.valueOf(myPort) + "_files", new Gson().toJson(myTable1));
+                    }
+                }
+
+//                String directoryPath1 = getDirectoryFromFilePath(pathname);
+//                int directoryPathHash1 = getSHA1Hash(directoryPath1);
+//                String directoryPathPort1 = getSuccessorPort(String.valueOf(directoryPathHash1));
+//                command = "delete_directory_entry\t" + String.valueOf(directoryPathHash1) + "\t"
+//                        + directoryPath + "\t" + item.name + "\t" + "f" + "\n";
+//                SendCommand(directoryPathPort1, command);
+            } else {
+//                String pathname = directoryPath + item.name+ "/";
+                String directoryPath1 = directoryPath + item.name + "/";
+                int directoryPathHash1 = getSHA1Hash(directoryPath1);
+                String directoryPathPort1 = getSuccessorPort(String.valueOf(directoryPathHash1));
+                if (!directoryPathPort1.equals(String.valueOf(myPort))) {
+                    String command = "remove_directory\t" + directoryPath1 + "\n";
+                    SendCommand(directoryPathPort1, command);
+                } else {
+                    DeleteDirectory(directoryPath1);
+                }
+
+//                String directoryPath2 = getDirectoryFromFilePath(pathname);
+//                int directoryPathHash2 = getSHA1Hash(directoryPath2);
+//                String directoryPathPort2 = getSuccessorPort(String.valueOf(directoryPathHash2));
+//                command = "delete_directory_entry\t" + String.valueOf(directoryPathHash2) + "\t"
+//                        + directoryPath + "\t" + item.name + "\t" + "d" + "\n";
+//                SendCommand(directoryPathPort2, command);
+            }
+        }
     }
 
     private static void DeleteLocalFile(String filename) {
@@ -926,7 +1011,8 @@ public class Main {
 
 
     // returns successor port from a node denoted by filename and query node denoted by queryNodeId
-    private static String getSuccessorPort(String filename, String queryNodeId) {
+    private static String getSuccessorPort(String queryNodeId) {
+        String filename = String.valueOf(myPort);
         int min;
         int nodeId = getHash(Integer.parseInt(filename));
         try (BufferedReader reader = new BufferedReader(new FileReader(FINGER_TABLE_DIRECTORY + filename + "_files"))) {
