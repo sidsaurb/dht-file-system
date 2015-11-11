@@ -23,6 +23,9 @@ public class Main {
     static String CURRENT_PATH = "/filesystem/";
 
 
+    static Stack<String> directoryStack;
+
+
 //    static int N = 65536;
 //    static int logN = 16;
 
@@ -36,6 +39,7 @@ public class Main {
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
+        directoryStack = new Stack<>();
         while (true) {
             try {
                 Thread.sleep(500);
@@ -180,6 +184,28 @@ public class Main {
                         System.out.println("The program is not listening to any port");
                     }
                     break;
+                case "pushd":
+                    if (alreadyListening) {
+                        String relativePath = scanner.next(); // relative path
+                        boolean success = processPushdCommand(relativePath);
+                        if (!success) {
+                            System.out.println("There was an error in pushing");
+                        }
+                    } else {
+                        System.out.println("The program is not listening to any port");
+                    }
+                    break;
+                case "popd":
+                    if (alreadyListening) {
+                        if (directoryStack.size() == 0) {
+                            System.out.println("Stack is empty");
+                        } else {
+                            CURRENT_PATH = directoryStack.pop();
+                        }
+                    } else {
+                        System.out.println("The program is not listening to any port");
+                    }
+                    break;
                 // quit the program
                 case "q":
                     break;
@@ -197,6 +223,37 @@ public class Main {
                 break;
             }
         }
+    }
+
+    private static boolean processPushdCommand(String relativePath) {
+        directoryStack.push(CURRENT_PATH);
+        String[] arguments = relativePath.split("/");
+        for (String item1 : arguments) {
+            if (!item1.equals("..")) {
+                String contents = getDirectoryContents();
+                String[] contentList = contents.split("\n");
+                boolean exists = false;
+                for (String item : contentList) {
+                    String[] temp = item.split("\t");
+                    if (temp[0].equals(item1) && temp[1].equals("d")) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (exists) {
+                    CURRENT_PATH = CURRENT_PATH + item1 + "/";
+                } else {
+                    return false;
+                }
+            } else {
+                if (!CURRENT_PATH.equals("/filesystem/")) {
+                    CURRENT_PATH = getDirectoryFromFilePath(CURRENT_PATH.substring(0, CURRENT_PATH.length() - 1));
+                } else {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private static void prettyPrint(String contents) {
@@ -392,6 +449,7 @@ public class Main {
     }
 
     private static boolean processCdCommand(String directoryName) {
+        String oldPath = CURRENT_PATH;
         String[] arguments = directoryName.split("/");
         for (String item1 : arguments) {
             if (!item1.equals("..")) {
@@ -1303,7 +1361,7 @@ public class Main {
     private static void writeToFileAsJson(String filename, String contents) {
         try {
             Path out = Paths.get(FINGER_TABLE_DIRECTORY + filename);
-            Files.write(out, new ArrayList<>(Arrays.asList(contents)), Charset.defaultCharset());
+            Files.write(out, new ArrayList<>(Collections.singletonList(contents)), Charset.defaultCharset());
         } catch (Exception ignored) {
         }
     }
@@ -1332,5 +1390,3 @@ public class Main {
         }
     }
 }
-
-
