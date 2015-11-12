@@ -2,6 +2,9 @@
 The project is made in IntelliJ IDEA 14.1.5 using JDK 7u79.
 The program is tested to run on Ubuntu 14.04
 
+Link to original IntelliJ IDEA project repository:
+https://github.com/sidsaurb/dht-file-system
+
 Compilation and running instructions:
 
 1.  Before compiling and running the program you have to create 2 directories

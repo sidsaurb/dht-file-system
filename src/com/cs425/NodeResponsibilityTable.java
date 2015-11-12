@@ -87,7 +87,7 @@ public class NodeResponsibilityTable {
                 return false;
             }
         } catch (Exception ignored) {
-            System.out.println(String.valueOf(key) + " " + directoryPath + " " + name);
+//            System.out.println(String.valueOf(key) + " " + directoryPath + " " + name);
             return false;
         }
     }
@@ -111,6 +111,4 @@ public class NodeResponsibilityTable {
         Document doc = temp.entry.remove(pathname);
         return doc != null;
     }
-
-
 }

@@ -607,7 +607,7 @@ public class Main {
             }
             return success;
         } catch (Exception ex) {
-            ex.printStackTrace();
+//            ex.printStackTrace();
         }
         return false;
     }
@@ -634,7 +634,7 @@ public class Main {
             socket.close();
             return response.trim();
         } catch (Exception ex) {
-            ex.printStackTrace();
+//            ex.printStackTrace();
         }
         return "";
     }
@@ -654,7 +654,7 @@ public class Main {
             out.close();
             in.close();
         } catch (Exception ex) {
-            ex.printStackTrace();
+//            ex.printStackTrace();
         }
     }
 
@@ -672,7 +672,7 @@ public class Main {
             out.close();
             in.close();
         } catch (Exception ex) {
-            ex.printStackTrace();
+//            ex.printStackTrace();
         }
     }
 
@@ -737,7 +737,7 @@ public class Main {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
     }
 
@@ -793,7 +793,7 @@ public class Main {
                 return new Gson().fromJson(line, NodeResponsibilityTable.class);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
         return new NodeResponsibilityTable();
     }
@@ -845,7 +845,7 @@ public class Main {
                 createLocalDirectories();
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+//            ex.printStackTrace();
         }
     }
 
@@ -1015,7 +1015,7 @@ public class Main {
                             }
                         }
                     } catch (Exception ex) {
-                        ex.printStackTrace();
+//                        ex.printStackTrace();
                         alreadyListening = false;
                         listener.close();
                     }
@@ -1120,7 +1120,7 @@ public class Main {
             socket.close();
             return response;
         } catch (Exception ex) {
-            ex.printStackTrace();
+//            ex.printStackTrace();
         }
         return "failure";
     }
@@ -1184,7 +1184,7 @@ public class Main {
                 writeToFile(String.valueOf(currentPort), contents);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
     }
 
@@ -1220,7 +1220,7 @@ public class Main {
             return new Gson().toJson(toBeSentTable);
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+//            ex.printStackTrace();
         }
         return "";
     }
@@ -1237,7 +1237,7 @@ public class Main {
                 }
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+//            ex.printStackTrace();
         }
         return "";
     }
@@ -1261,7 +1261,7 @@ public class Main {
                 }
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+//            ex.printStackTrace();
         }
         return "";
     }
@@ -1279,7 +1279,7 @@ public class Main {
             socket.close();
             return successorNode;
         } catch (Exception e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
         return "";
     }
@@ -1350,7 +1350,7 @@ public class Main {
                 }
                 writeToFile(filename, contents);
             } catch (Exception ex) {
-                ex.printStackTrace();
+//                ex.printStackTrace();
             }
 
         } catch (Exception ex) {
